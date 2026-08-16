@@ -33,6 +33,7 @@ class LDRSensorUsermod : public Usermod {
     bool invert = false;            // flip the percentage for wiring where a higher raw reading means darker
     uint16_t checkIntervalMs = 500; // how often the pin is read
     String namePrefix = "ldr";      // sensor name becomes "<prefix>_light"
+    uint8_t priority = 100;         // getValue() selection priority - lower wins among sensors of the same SensorType (see sensor_bus.h)
 
     static const char _name[];
     static const char _enabled[];
@@ -40,6 +41,7 @@ class LDRSensorUsermod : public Usermod {
     static const char _invert[];
     static const char _checkInterval[];
     static const char _namePrefix[];
+    static const char _priority[];
 
 #ifdef ESP8266
     static const uint16_t ADC_MAX = 1023;
@@ -49,7 +51,7 @@ class LDRSensorUsermod : public Usermod {
 
     void registerSensors() {
       if (!hub || lightHandle != SENSOR_HANDLE_INVALID) return; // already registered
-      lightHandle = hub->registerSensor((namePrefix + "_light").c_str(), SensorType::Generic, "%", nullptr, 0);
+      lightHandle = hub->registerSensor((namePrefix + "_light").c_str(), SensorType::Generic, "%", nullptr, 0, priority);
     }
 
   public:
@@ -91,6 +93,7 @@ class LDRSensorUsermod : public Usermod {
       top[FPSTR(_invert)] = invert;
       top[FPSTR(_checkInterval)] = checkIntervalMs;
       top[FPSTR(_namePrefix)] = namePrefix;
+      top[FPSTR(_priority)] = priority;
     }
 
     bool readFromConfig(JsonObject& root) override {
@@ -103,6 +106,7 @@ class LDRSensorUsermod : public Usermod {
       configComplete &= getJsonValue(top[FPSTR(_invert)], invert);
       configComplete &= getJsonValue(top[FPSTR(_checkInterval)], checkIntervalMs);
       configComplete &= getJsonValue(top[FPSTR(_namePrefix)], namePrefix);
+      configComplete &= getJsonValue(top[FPSTR(_priority)], priority);
 
       if (initDone && pin != oldPin) {
         // pin changed at runtime via the Settings UI - release the old one and re-init on the new one
@@ -118,6 +122,7 @@ class LDRSensorUsermod : public Usermod {
       settingsScript.print(F("addInfo('LDRSensor:invert',1,'flip % if a higher raw reading means darker');"));
       settingsScript.print(F("addInfo('LDRSensor:checkInterval',1,'milliseconds between pin reads');"));
       settingsScript.print(F("addInfo('LDRSensor:namePrefix',1,'sensor name becomes &lt;prefix&gt;_light - must be unique across all sensor providers');"));
+      settingsScript.print(F("addInfo('LDRSensor:priority',1,'getValue() selection priority - lower wins if another provider also registers a Generic sensor');"));
     }
 };
 
@@ -127,6 +132,7 @@ const char LDRSensorUsermod::_pin[]           PROGMEM = "pin";
 const char LDRSensorUsermod::_invert[]        PROGMEM = "invert";
 const char LDRSensorUsermod::_checkInterval[] PROGMEM = "checkInterval";
 const char LDRSensorUsermod::_namePrefix[]    PROGMEM = "namePrefix";
+const char LDRSensorUsermod::_priority[]      PROGMEM = "priority";
 
 static LDRSensorUsermod ldr_sensor;
 REGISTER_USERMOD(ldr_sensor);
