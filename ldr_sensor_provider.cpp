@@ -18,6 +18,12 @@
  * right here in this usermod's own settings. Note ESP8266 only exposes a
  * single fixed ADC pin (A0/GPIO17).
  */
+
+// Uncalibrated % isn't one of the standard quantities - a custom type
+// local to this provider (see sensor_bus.h's "open set" doc comment).
+constexpr SensorTypeInfo LightLevelType{"light_level", "%", nullptr, false};
+REGISTER_SENSOR_SLOT(_slotLight, "_light", LightLevelType, 0, 100);
+
 class LDRSensorUsermod : public Usermod {
   private:
     SensorHub* hub = nullptr;
@@ -51,7 +57,7 @@ class LDRSensorUsermod : public Usermod {
 
     void registerSensors() {
       if (!hub || lightHandle != SENSOR_HANDLE_INVALID) return; // already registered
-      lightHandle = hub->registerSensor((namePrefix + "_light").c_str(), SensorType::Generic, "%", nullptr, 0, priority);
+      lightHandle = hub->attachSensor(&_slotLight, namePrefix.c_str(), 0, priority);
     }
 
   public:
